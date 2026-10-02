@@ -316,7 +316,7 @@ object ThemeRes {
         }
     }
 
-    fun card(context: Context, radiusDp: Float = 24f, fill: Int? = null, solid: Boolean = false, topOnly: Boolean = false, base: Int? = null): Drawable {
+    fun card(context: Context, radiusDp: Float = 26f, fill: Int? = null, solid: Boolean = false, topOnly: Boolean = false, base: Int? = null): Drawable {
         val p = palette(context)
         if (nothing(context)) return DotArt.Box(context, fill ?: p.card, p.outline, radiusDp, topOnly, solid, base)
         return shape(context, fill ?: p.card, p.outline, radiusDp).apply {
@@ -324,8 +324,8 @@ object ThemeRes {
         }
     }
 
-    /** Icon button / framed control: `card` fill, `outline` stroke, 14dp radius (SPEC section 2). */
-    fun iconButton(context: Context, radiusDp: Float = 14f): Drawable = card(context, radiusDp)
+    /** Icon button / framed control: `card` fill, `outline` stroke, 18dp radius (One UI 9 squircle). */
+    fun iconButton(context: Context, radiusDp: Float = 18f): Drawable = card(context, radiusDp)
 
     private var snapshot: android.graphics.Bitmap? = null
 

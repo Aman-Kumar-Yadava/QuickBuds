@@ -5,10 +5,10 @@
 // This classpath entry only pins the Kotlin version it uses; AGP alone would bring an older one.
 buildscript {
     dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.10")
     }
 }
 
 plugins {
-    id("com.android.application") version "9.4.0" apply false
+    id("com.android.application") version "9.1.1" apply false
 }

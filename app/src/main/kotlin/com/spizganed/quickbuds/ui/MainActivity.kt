@@ -637,6 +637,7 @@ class MainActivity : Activity(), BudsConnectionManager.Listener {
      * caption under it — including the ANC strength, which the old circle showed as "ANC-M".
      */
     private fun renderAnc(mode: String) {
+        statusView.buds3DView.ancMode = mode
         if (connectedUi == false) {
             ancView.selected = -1
             closeLevels(animate = false)

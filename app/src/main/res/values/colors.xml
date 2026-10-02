@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#000000</color>
+    <color name="ic_launcher_background">#0A0F1D</color>
 
     <!-- Edit preset quick swatches (design/SPEC.md 3.8). Picker choices, not app colours. -->
     <color name="swatch_red">#D71920</color>

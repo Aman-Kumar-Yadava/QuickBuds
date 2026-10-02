@@ -41,36 +41,34 @@
         <item name="android:fontFamily">@font/doto</item>
     </style>
 
-    <!-- OLED Black (default). True black so the panel shuts pixels off. -->
+    <!-- OLED Black (default). Deep One UI 9 obsidian background with Samsung electric blue. -->
     <style name="Theme.App.OLED" parent="Theme.App.Base">
-        <item name="appColorBg">#000000</item>
-        <item name="appColorCard">#000000</item>
-        <item name="appColorAccent">#D71920</item>
+        <item name="appColorBg">#07080C</item>
+        <item name="appColorCard">#13161F</item>
+        <item name="appColorAccent">#2B70F7</item>
         <item name="appColorTextPrimary">#FFFFFF</item>
-        <item name="appColorTextSecondary">#9B9B9B</item>
-        <item name="appColorOutline">#2E2E30</item>
+        <item name="appColorTextSecondary">#8E95A5</item>
+        <item name="appColorOutline">#222736</item>
     </style>
 
-    <!-- Classic Dark. Off-black so the cards have something to sit against. -->
+    <!-- One UI 9 Dark (Classic Dark). Sleek slate cards with vibrant Samsung blue. -->
     <style name="Theme.App.Dark" parent="Theme.App.Base">
-        <item name="appColorBg">#121214</item>
-        <item name="appColorCard">#232327</item>
-        <item name="appColorAccent">#D71920</item>
+        <item name="appColorBg">#0C0E14</item>
+        <item name="appColorCard">#181B26</item>
+        <item name="appColorAccent">#2B70F7</item>
         <item name="appColorTextPrimary">#FFFFFF</item>
-        <item name="appColorTextSecondary">#A0A0A5</item>
-        <item name="appColorOutline">#34343A</item>
+        <item name="appColorTextSecondary">#949BAE</item>
+        <item name="appColorOutline">#262B3D</item>
     </style>
 
-    <!-- White (redesigned 2026-09-27). A cool grey page so the white cards stand off it, near-black
-         text, and an outline just dark enough to draw the cards' edges. Light bars, so the system
-         icons flip to dark. The light-theme derived colours (switches) are in Palette. -->
+    <!-- One UI 9 Light (White). Pristine cool porcelain canvas with white squircle cards. -->
     <style name="Theme.App.Light" parent="Theme.App.Base">
-        <item name="appColorBg">#ECECF0</item>
+        <item name="appColorBg">#F0F3F9</item>
         <item name="appColorCard">#FFFFFF</item>
-        <item name="appColorAccent">#D71920</item>
-        <item name="appColorTextPrimary">#17171A</item>
-        <item name="appColorTextSecondary">#6A6A72</item>
-        <item name="appColorOutline">#DCDCE2</item>
+        <item name="appColorAccent">#1A62E8</item>
+        <item name="appColorTextPrimary">#0F141D</item>
+        <item name="appColorTextSecondary">#656C80</item>
+        <item name="appColorOutline">#DEE2EF</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
     </style>

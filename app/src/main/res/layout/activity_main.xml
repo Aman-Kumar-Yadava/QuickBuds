@@ -17,10 +17,10 @@
     android:orientation="vertical"
     android:background="?attr/appColorBg">
 
-    <!-- Header. Left action intentionally absent: the redesign drops it. -->
+    <!-- Header. Samsung One UI 9 spacious top bar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="54dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 

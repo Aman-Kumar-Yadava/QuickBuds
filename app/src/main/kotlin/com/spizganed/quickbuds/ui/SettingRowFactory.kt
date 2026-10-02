@@ -1,40 +1,28 @@
 package com.spizganed.quickbuds.ui
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
-import android.graphics.PorterDuff
 import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.Switch
 import android.widget.LinearLayout
+import android.widget.Switch
 import android.widget.TextView
 import com.spizganed.quickbuds.R
 
 /**
- * Builds the rows inside the main screen's settings card.
- *
- * WHY ROWS ARE BUILT IN CODE AND NOT IN XML
- * Every row is the same shape (icon, title + subtitle, control) and only the
- * control differs. Six near-identical blocks in XML would mean six places to edit
- * on any change, and — more importantly — the theme has to tint each icon and
- * switch, which XML cannot do for a vector drawable. Building them here keeps
- * "what a row looks like" in exactly one place.
- *
- * The row is a plain LinearLayout rather than a custom View class: it needs no
- * state of its own, so a custom ViewGroup would be ceremony with no payoff.
+ * Builds the rows inside Samsung One UI 9 style settings cards:
+ * - 40x40dp squircle icon container with vibrant category tint.
+ * - Inset dividers (starting under text column, 68dp inset from start).
+ * - Plush 26dp rounded squircle cards.
+ * - One UI 9 smooth toggles, chevrons, and typography.
  */
 object SettingRowFactory {
 
-    /**
-     * One settings row (SPEC section 2): 72dp, 16dp padding, 14dp gap, 24dp accent icon (none
-     * when [iconRes] is 0), title + optional subtitle, optional [value] text, then [trailing] in
-     * a fixed 52dp slot so every toggle and chevron shares one right edge. The whole row is the
-     * hit target, with a ripple.
-     *
-     * WRAP_CONTENT + minimumHeight, NOT a fixed height: a gesture binding can name several
-     * actions, and a fixed height clipped it.
-     */
     fun build(
         context: Context,
         iconRes: Int,
@@ -42,11 +30,13 @@ object SettingRowFactory {
         subtitleRes: Int,
         trailing: View?,
         value: View? = null,
-        minHeightDp: Float = 62f,
+        minHeightDp: Float = 66f,
         leading: View? = null,
         onClick: (() -> Unit)? = null
     ): LinearLayout {
         val dp = { v: Float -> ThemeRes.dp(context, v) }
+        val p = ThemeRes.palette(context)
+
         val row = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -54,25 +44,42 @@ object SettingRowFactory {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
             )
             minimumHeight = dp(minHeightDp)
-            setPadding(dp(16f), dp(8f), dp(16f), dp(8f))
+            setPadding(dp(16f), dp(10f), dp(16f), dp(10f))
             if (onClick != null) {
                 background = ThemeRes.ripple(context)
                 setOnClickListener { onClick() }
             }
         }
 
-        // Keep the leading view's own size: a plain View (the colour swatch) forced to WRAP_CONTENT
-        // takes the whole row width, squeezing the title to one letter per line.
-        if (leading != null) row.addView(leading, (leading.layoutParams as? LinearLayout.LayoutParams
-            ?: LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-        ).apply { marginEnd = dp(14f) })
-        if (iconRes != 0) row.addView(ImageView(context).apply {
-            layoutParams = LinearLayout.LayoutParams(dp(24f), dp(24f)).apply { marginEnd = dp(14f) }
-            scaleType = ImageView.ScaleType.FIT_CENTER
-            setImageDrawable(ThemeRes.tint(context, iconRes, ThemeRes.color(context, R.attr.appColorAccent)))
-            contentDescription = ""
-            tag = ICON_TAG
-        })
+        if (leading != null) {
+            row.addView(leading, (leading.layoutParams as? LinearLayout.LayoutParams
+                ?: LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            ).apply { marginEnd = dp(14f) })
+        }
+
+        // Samsung One UI 9 Squircle Icon Badge Container
+        if (iconRes != 0) {
+            val (badgeBg, badgeIconColor) = getCategoryBadgeColors(iconRes, p.isLight)
+            val iconContainer = FrameLayout(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(40f), dp(40f)).apply {
+                    marginEnd = dp(14f)
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(13f).toFloat()
+                    setColor(badgeBg)
+                }
+                val iv = ImageView(context).apply {
+                    layoutParams = FrameLayout.LayoutParams(dp(22f), dp(22f), Gravity.CENTER)
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                    setImageDrawable(ThemeRes.tint(context, iconRes, badgeIconColor))
+                    contentDescription = ""
+                    tag = ICON_TAG
+                }
+                addView(iv)
+            }
+            row.addView(iconContainer)
+        }
 
         val textColumn = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -82,69 +89,74 @@ object SettingRowFactory {
         textColumn.addView(TextView(context).apply {
             if (titleRes != 0) setText(titleRes)
             tag = TITLE_TAG
-            setTextColor(ThemeRes.color(context, R.attr.appColorTextPrimary))
-            textSize = 16f
+            setTextColor(p.text)
+            textSize = 15.5f
             typeface = ThemeRes.medium(context)
         })
         if (subtitleRes != 0) {
             textColumn.addView(TextView(context).apply {
                 setText(subtitleRes)
-                setTextColor(ThemeRes.color(context, R.attr.appColorTextSecondary))
-                textSize = 13f
+                setTextColor(p.textSecondary)
+                textSize = 12.5f
                 setPadding(0, dp(2f), 0, 0)
-                // Tagged so a live row (hi-res codec) can swap its subtitle text
-                // without rebuilding the row and losing its switch state.
                 tag = SUBTITLE_TAG
             })
         }
         row.addView(textColumn)
+
         if (value != null) row.addView(value)
-        if (trailing != null) row.addView(FrameLayout(context).apply {
-            layoutParams = LinearLayout.LayoutParams(dp(52f), LinearLayout.LayoutParams.WRAP_CONTENT)
-            addView(trailing, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.END or Gravity.CENTER_VERTICAL
-            ))
-        })
+        if (trailing != null) {
+            row.addView(FrameLayout(context).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(52f), LinearLayout.LayoutParams.WRAP_CONTENT)
+                addView(trailing, FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.END or Gravity.CENTER_VERTICAL
+                ))
+            })
+        }
         return row
     }
 
-    /**
-     * The row's subtitle, created empty if the row was built without one, so a caller can fill
-     * it at runtime (active preset name, installed version).
-     */
+    private fun getCategoryBadgeColors(iconRes: Int, isLight: Boolean): Pair<Int, Int> {
+        return when (iconRes) {
+            R.drawable.ic_equalizer -> if (isLight) Color.parseColor("#EFEAFF") to Color.parseColor("#7C3AED")
+                                       else Color.parseColor("#261B40") to Color.parseColor("#A78BFA")
+            R.drawable.ic_spatial -> if (isLight) Color.parseColor("#E6F0FF") to Color.parseColor("#2563EB")
+                                     else Color.parseColor("#142340") to Color.parseColor("#60A5FA")
+            R.drawable.ic_earbud, R.drawable.ic_gesture -> if (isLight) Color.parseColor("#FFF4E5") to Color.parseColor("#D97706")
+                                                           else Color.parseColor("#382310") to Color.parseColor("#FBBF24")
+            R.drawable.ic_low_latency, R.drawable.ic_bolt -> if (isLight) Color.parseColor("#E6F9F0") to Color.parseColor("#059669")
+                                                             else Color.parseColor("#102C20") to Color.parseColor("#34D399")
+            R.drawable.ic_hearing -> if (isLight) Color.parseColor("#E0F7FA") to Color.parseColor("#0891B2")
+                                     else Color.parseColor("#0F2833") to Color.parseColor("#38BDF8")
+            R.drawable.ic_devices -> if (isLight) Color.parseColor("#EDE9FE") to Color.parseColor("#6366F1")
+                                     else Color.parseColor("#1D1C3E") to Color.parseColor("#818CF8")
+            R.drawable.ic_find_buds -> if (isLight) Color.parseColor("#FCE7F3") to Color.parseColor("#DB2777")
+                                       else Color.parseColor("#3B1629") to Color.parseColor("#F472B6")
+            else -> if (isLight) Color.parseColor("#EEF2F6") to Color.parseColor("#475569")
+                    else Color.parseColor("#1F2432") to Color.parseColor("#94A3B8")
+        }
+    }
+
     fun subtitle(context: Context, row: LinearLayout): TextView {
         row.findViewWithTag<TextView>(SUBTITLE_TAG)?.let { return it }
         val column = row.findViewWithTag<LinearLayout>(TEXT_TAG)
         return TextView(context).apply {
             setTextColor(ThemeRes.color(context, R.attr.appColorTextSecondary))
-            textSize = 13f
+            textSize = 12.5f
             setPadding(0, ThemeRes.dp(context, 2f), 0, 0)
             tag = SUBTITLE_TAG
             column.addView(this)
         }
     }
 
-    /** Tag for the subtitle TextView, so callers can find and update it. */
     const val SUBTITLE_TAG = "setting_row_subtitle"
-
-    /** Tag for the title TextView (rows whose title is not a resource, e.g. a preset name). */
     const val TITLE_TAG = "setting_row_title"
-
-    /** Tag for the title + subtitle column. */
     const val TEXT_TAG = "setting_row_text"
-
-    /** Tag for the leading icon ImageView. */
     const val ICON_TAG = "setting_row_icon"
 
-    /**
-     * Themed toggle: a plain android.widget.Switch (no Material dependency) with the SPEC's
-     * derived tints — `track` for the track, accent thumb when on, `text` at 90% when off.
-     */
     fun buildSwitch(context: Context, checked: Boolean): Switch {
         val (thumb, track) = ThemeRes.switchTints(context)
-        // performClick runs only for a user tap (the switch itself or its row), never for a
-        // programmatic isChecked, so it is the one place a toggle's haptic belongs.
         return object : Switch(context) {
             override fun performClick(): Boolean = super.performClick().also { Haptics.commit(this) }
         }.apply {
@@ -154,40 +166,22 @@ object SettingRowFactory {
             thumbTintList = thumb
             trackTintList = track
             trackTintMode = PorterDuff.Mode.SRC_IN
-            // No press halo: the stock ripple drew a see-through circle twice the knob's size.
             background = null
-            // Nothing style: a dotted pill track and a dot-disc thumb (DotArt), coloured by the same tint lists.
-            if (ThemeRes.nothing(context)) {
-                trackDrawable = DotArt.Part(context, 44f, 24f, track) { c, b, p -> c.drawRoundRect(b, b.height() / 2, b.height() / 2, p) }
-                thumbDrawable = DotArt.Part(context, 24f, 24f, thumb) { c, b, p ->
-                    // As tall as the track ([USER] 2026-09-28: no padding around the thumb).
-                    c.drawCircle(b.centerX(), b.centerY(), b.height() / 2, p)
-                }
-                thumbTintList = null
-                trackTintList = null
-                switchMinWidth = 0
-            }
         }
     }
 
-    /** Chevron for rows that open another screen: 22dp, accent, no frame. */
     fun buildChevron(context: Context): ImageView {
         val dp = { v: Float -> ThemeRes.dp(context, v) }
         return ImageView(context).apply {
-            layoutParams = LinearLayout.LayoutParams(dp(22f), dp(22f))
+            layoutParams = LinearLayout.LayoutParams(dp(20f), dp(20f))
             scaleType = ImageView.ScaleType.FIT_CENTER
             setImageDrawable(
-                ThemeRes.tint(context, R.drawable.ic_chevron_right, ThemeRes.color(context, R.attr.appColorAccent))
+                ThemeRes.tint(context, R.drawable.ic_chevron_right, ThemeRes.color(context, R.attr.appColorTextSecondary))
             )
             contentDescription = ""
         }
     }
 
-    /**
-     * A muted value label before the trailing slot, used by rows that report state (gesture
-     * bindings). Capped at ~55% of the screen and two lines so a long binding wraps instead of
-     * squeezing the title to nothing.
-     */
     fun buildValue(context: Context, text: String): TextView {
         val dp = { v: Float -> ThemeRes.dp(context, v) }
         return TextView(context).apply {
@@ -202,21 +196,25 @@ object SettingRowFactory {
         }
     }
 
-    /** 1dp `outline` divider between rows inside a card (Nothing: a row of dots). Not drawn after the last row. */
+    /**
+     * Samsung One UI 9 Inset Divider (starts under text column, 70dp from start).
+     */
     fun buildDivider(context: Context): View = View(context).apply {
         val outline = ThemeRes.color(context, R.attr.appColorOutline)
-        if (ThemeRes.nothing(context)) {
-            // Nothing style: one row of dots (DotArt), a dot tall.
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, DotArt.pitchPx(context).toInt())
-            background = DotArt.Part(context, 0f, DotArt.PITCH_DP, android.content.res.ColorStateList.valueOf(outline)) { c, b, p -> c.drawRect(b, p) }
-            return@apply
+        val dp = { v: Float -> ThemeRes.dp(context, v) }
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(1f)
+        ).apply {
+            marginStart = dp(70f) // Inset past the icon badge
+            marginEnd = dp(16f)
         }
-        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ThemeRes.dp(context, 1f))
         setBackgroundColor(outline)
     }
 
-    /** Card (SPEC section 2): 24dp radius, `outline` stroke, rows clipped to the corners. The dot style draws the same outline in dots ([USER] 2026-09-30). */
-    fun card(context: Context, radiusDp: Float = 24f): LinearLayout = LinearLayout(context).apply {
+    /**
+     * Samsung One UI 9 Plush Squircle Card: 26dp radius.
+     */
+    fun card(context: Context, radiusDp: Float = 26f): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         background = ThemeRes.card(context, radiusDp)
         clipToOutline = true
@@ -225,10 +223,8 @@ object SettingRowFactory {
         )
     }
 
-    /** Corner radius of a split row's card and of its selection outline: less than the 24dp cards, or a 52dp row reads as a pill. */
-    const val SPLIT_RADIUS = 16f
+    const val SPLIT_RADIUS = 18f
 
-    /** A plain column for [addSplit]: rows that are each their own card, with a gap ([USER] 2026-09-30: a selected row's outline fits its own card). */
     fun splitList(context: Context): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         layoutParams = LinearLayout.LayoutParams(
@@ -236,60 +232,56 @@ object SettingRowFactory {
         )
     }
 
-    /** Adds [row] to [list] as a card of its own, 8dp under the one before. */
     fun addSplit(list: LinearLayout, row: View) {
         val c = card(list.context, SPLIT_RADIUS)
-        (c.layoutParams as LinearLayout.LayoutParams).topMargin = if (list.childCount > 0) ThemeRes.dp(list.context, 8f) else 0
+        (c.layoutParams as LinearLayout.LayoutParams).topMargin = if (list.childCount > 0) ThemeRes.dp(list.context, 10f) else 0
         c.addView(row)
         list.addView(c)
     }
 
-    /** Adds [row] to [card], with a divider before every row but the first. */
     fun addRow(card: LinearLayout, row: View) {
         if (card.childCount > 0) card.addView(buildDivider(card.context))
         card.addView(row)
     }
 
-    /** Screen title: 24sp bold (dot style: Doto, [ThemeRes.headline]), 4dp start inset. */
-    fun title(context: Context, textRes: Int): TextView = TextView(context).apply {
-        setText(textRes)
-        setTextColor(ThemeRes.color(context, R.attr.appColorTextPrimary))
-        textSize = 24f
-        typeface = ThemeRes.headline(context)
-        setPadding(ThemeRes.dp(context, 4f), 0, 0, ThemeRes.dp(context, 4f))
-    }
-
-    /** Section label: 14sp, `textSecondary`, 4dp start inset, 9dp above its card. */
-    fun sectionLabel(context: Context, textRes: Int): TextView = TextView(context).apply {
-        setText(textRes)
-        setTextColor(ThemeRes.color(context, R.attr.appColorTextSecondary))
-        textSize = 14f
-        val dp = { v: Float -> ThemeRes.dp(context, v) }
-        setPadding(dp(4f), dp(14f), 0, dp(8f))
-    }
-
-    /**
-     * Screen root (SPEC section 2): vertical column on `background`, 16dp sides, 20dp top and
-     * bottom plus the system bars (the app draws edge to edge on target SDK 35+).
-     */
     fun screen(context: Context): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
-        setBackgroundColor(ThemeRes.color(context, R.attr.appColorBg))
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT
+        )
         ThemeRes.screenPadding(this)
     }
 
-    /** Icon button (SPEC section 2): 44dp, `card` fill, `outline` stroke, 14dp radius, 22dp accent icon. */
-    fun iconButton(context: Context, iconRes: Int, descRes: Int, onClick: () -> Unit): ImageView {
+    fun title(context: Context, titleRes: Int): TextView = TextView(context).apply {
+        setText(titleRes)
+        setTextColor(ThemeRes.color(context, R.attr.appColorTextPrimary))
+        textSize = 28f
+        typeface = ThemeRes.bold(context)
+        setPadding(ThemeRes.dp(context, 4f), ThemeRes.dp(context, 14f), 0, ThemeRes.dp(context, 18f))
+    }
+
+    fun section(context: Context, titleRes: Int): TextView = sectionLabel(context, titleRes)
+
+    fun sectionLabel(context: Context, titleRes: Int): TextView = TextView(context).apply {
+        setText(titleRes)
+        setTextColor(ThemeRes.color(context, R.attr.appColorAccent))
+        textSize = 13.5f
+        typeface = ThemeRes.bold(context)
         val dp = { v: Float -> ThemeRes.dp(context, v) }
-        return ImageView(context).apply {
+        setPadding(dp(8f), dp(18f), 0, dp(8f))
+    }
+
+    fun iconButton(context: Context, iconRes: Int, descRes: Int, onClick: () -> Unit): android.widget.ImageButton {
+        val dp = { v: Float -> ThemeRes.dp(context, v) }
+        return android.widget.ImageButton(context).apply {
             layoutParams = LinearLayout.LayoutParams(dp(44f), dp(44f))
             setPadding(dp(11f), dp(11f), dp(11f), dp(11f))
             scaleType = ImageView.ScaleType.FIT_CENTER
             background = ThemeRes.ripple(context, ThemeRes.iconButton(context))
             setImageDrawable(ThemeRes.tint(context, iconRes, ThemeRes.color(context, R.attr.appColorAccent)))
-            contentDescription = context.getString(descRes)
-            isClickable = true
+            if (descRes != 0) contentDescription = context.getString(descRes)
             setOnClickListener { onClick() }
+            ThemeRes.sinkOnPress(this)
         }
     }
 }

@@ -19,11 +19,11 @@ val keyProps = Properties().apply {
 
 android {
     namespace = "com.spizganed.quickbuds"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 36
 
         // THE ONLY PLACE the version is declared. It used to live on <application> in the manifest,
         // where Android ignores it: every PC build up to 2026-09-23 shipped with NO version, which
@@ -33,6 +33,12 @@ android {
     }
 
     signingConfigs {
+        create("debugConfig") {
+            storeFile = file("${rootDir}/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (!keyProps.isEmpty) create("release") {
             storeFile = rootProject.file(keyProps.getProperty("storeFile"))
             storePassword = keyProps.getProperty("storePassword")
@@ -42,6 +48,9 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debugConfig")
+        }
         getByName("release") {
             signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
