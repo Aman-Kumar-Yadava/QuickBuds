@@ -61,7 +61,7 @@ import com.spizganed.quickbuds.widget.WidgetStateStore
 class MainActivity : Activity(), BudsConnectionManager.Listener {
 
     private lateinit var manager: BudsConnectionManager
-    private lateinit var mainLayout: LinearLayout
+    private lateinit var mainLayout: View
     private lateinit var featureList: LinearLayout
 
     private lateinit var btnSettings: ImageButton
@@ -314,13 +314,22 @@ class MainActivity : Activity(), BudsConnectionManager.Listener {
 
         setContentView(R.layout.activity_main)
 
-        mainLayout = findViewById<LinearLayout>(R.id.mainLayout)
+        mainLayout = findViewById(R.id.mainLayout)
         featureList = findViewById<LinearLayout>(R.id.featureList)
         deviceNameText = findViewById<TextView>(R.id.deviceNameText)
         findViewById<ImageButton>(R.id.btnModel).apply {
             background = ThemeRes.ripple(this@MainActivity, ThemeRes.iconButton(this@MainActivity))
             setImageDrawable(ThemeRes.tint(this@MainActivity, R.drawable.ic_model_list, ThemeRes.color(this@MainActivity, R.attr.appColorAccent)))
             setOnClickListener { startActivity(Intent(this@MainActivity, ModelActivity::class.java)) }
+        }
+        findViewById<View>(R.id.bottomModel)?.setOnClickListener {
+            startActivity(Intent(this@MainActivity, ModelActivity::class.java))
+        }
+        findViewById<View>(R.id.bottomSettings)?.setOnClickListener {
+            startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+        }
+        findViewById<View>(R.id.btnBack)?.setOnClickListener {
+            finish()
         }
         showModelName()
         btnSettings = findViewById<ImageButton>(R.id.btnSettings)

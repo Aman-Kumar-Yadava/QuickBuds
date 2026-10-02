@@ -3,7 +3,7 @@
     <string name="app_name" translatable="false">QuickBuds</string>
 
     <!-- Device title shown before the buds report their name. -->
-    <string name="default_device_name" translatable="false">OnePlus Buds 4</string>
+    <string name="default_device_name" translatable="false">Aman\'s OnePlus Nord Buds</string>
 
     <!-- Widget picker label. Without a label on the provider receiver some launchers
          show a blank or unnamed entry, or fail the entry outright. -->

@@ -261,7 +261,10 @@ open class QuickBudsWidget(private val kind: Kind) : AppWidgetProvider() {
                 v.setInt(bgId, "setColorFilter", panelColor(context, p))
                 panelOutline(context, v, strokeId, p)
                 v.setImageViewBitmap(ringId, ring(context, p, levels[slot], slot, statuses[slot], ringDp))
-                pctText(context, v, pct, p, levels[slot])
+                val isLeftCharging = slot == 0 && (state.leftStatus == 4 || state.leftInBox)
+                val isRightCharging = slot == 2 && (state.rightStatus == 4 || state.rightInBox)
+                val isCharging = isLeftCharging || isRightCharging
+                pctText(context, v, pct, p, levels[slot], isCharging)
                 val inEar = statuses[slot] == 3 || statuses[slot] == 7
                 val text = if (slot == 1) context.getString(names[slot]) else wearLabel(context, statuses[slot]) ?: context.getString(names[slot])
                 // Nothing: no wear text, the glyph's shade says it ([nothingTint]) and the ring's content description reads it.
@@ -313,8 +316,10 @@ open class QuickBudsWidget(private val kind: Kind) : AppWidgetProvider() {
         }
 
         /** Percentage, always `text`: nothing in the battery display changes colour by level ([USER] 2026-09-27). */
-        private fun pctText(context: Context, v: RemoteViews, id: Int, p: Palette, level: Int) {
-            setText(context, v, id, pctLabel(context, level), p.text)
+        private fun pctText(context: Context, v: RemoteViews, id: Int, p: Palette, level: Int, isCharging: Boolean = false) {
+            val label = pctLabel(context, level)
+            val fullText = if (isCharging && level in 0..100) "⚡ $label" else label
+            setText(context, v, id, fullText, p.text)
         }
 
         /**
@@ -360,6 +365,19 @@ open class QuickBudsWidget(private val kind: Kind) : AppWidgetProvider() {
          * latency setting) do not have stays as an empty cell. Everything set both ways, see [build].
          */
         private fun controls(context: Context, v: RemoteViews, p: Palette, state: WidgetStateStore.State, kind: Kind, id: Int, swap: Kind?) {
+            // Update small battery details in the controls page header
+            val leftCharge = state.leftStatus == 4 || state.leftInBox
+            val rightCharge = state.rightStatus == 4 || state.rightInBox
+            val leftText = if (state.leftBattery in 0..100) (if (leftCharge) "⚡ L ${state.leftBattery}%" else "L ${state.leftBattery}%") else "L —"
+            val caseText = if (state.caseBattery in 0..100) "Case ${state.caseBattery}%" else "Case —"
+            val rightText = if (state.rightBattery in 0..100) (if (rightCharge) "⚡ R ${state.rightBattery}%" else "R ${state.rightBattery}%") else "R —"
+            v.setTextViewText(R.id.w_cb_left, leftText)
+            v.setTextViewText(R.id.w_cb_case, caseText)
+            v.setTextViewText(R.id.w_cb_right, rightText)
+            v.setTextColor(R.id.w_cb_left, if (leftCharge) Color.parseColor("#10B981") else p.textSecondary)
+            v.setTextColor(R.id.w_cb_case, p.textSecondary)
+            v.setTextColor(R.id.w_cb_right, if (rightCharge) Color.parseColor("#10B981") else p.textSecondary)
+
             val anc = AncModes.of(context)
             val current = WidgetSettings.modeOf(state.ancMode)
             val levels = WidgetSettings.ancPicker(context)
@@ -368,17 +386,22 @@ open class QuickBudsWidget(private val kind: Kind) : AppWidgetProvider() {
             /** First letters of the words, capitals: "Low latency" -> "LL" (translated names too). */
             fun initials(res: Int) = context.getString(res).split(' ').filter { it.isNotEmpty() }.joinToString("") { it.take(1) }.uppercase()
             class Q(val shown: Boolean, val lit: Boolean, val icon: Int, val label: String, val desc: String, val pi: PendingIntent)
+            val isOff = current.key == "off" || state.ancMode == "Off"
+            val isTrans = current.key == "trans" || state.ancMode == "Transparency"
             val qs = listOf(
                 Q(levels.isNotEmpty(), inAnc, if (inAnc) current.icon else R.drawable.ic_mode_anc_medium,
                     if (inAnc) "ANC " + context.getString(current.short).take(1).uppercase() else "ANC",
                     context.getString(if (inAnc) current.name else R.string.anc_section),
                     receiverPI(context, WidgetActions.ACTION_QUICK, id, "anc", swap)),
-                Q(anc.supports(mode("trans").store), current.key == "trans", mode("trans").icon, initials(R.string.anc_seg_trans),
-                    context.getString(R.string.anc_seg_trans), receiverPI(context, WidgetActions.ACTION_QUICK, id, "trans", swap)),
-                Q(anc.supports(mode("adapt").store), current.key == "adapt", mode("adapt").icon, initials(R.string.anc_seg_adapt),
-                    context.getString(R.string.anc_seg_adapt), receiverPI(context, WidgetActions.ACTION_QUICK, id, "adapt", swap)),
+                Q(true, isOff, R.drawable.ic_noise_off, context.getString(R.string.anc_seg_off),
+                    context.getString(R.string.anc_seg_off),
+                    receiverPI(context, WidgetActions.ACTION_ANC_SELECT, id, "off", swap)),
+                Q(anc.supports(mode("trans").store), isTrans, mode("trans").icon, initials(R.string.anc_seg_trans),
+                    context.getString(R.string.anc_seg_trans),
+                    receiverPI(context, WidgetActions.ACTION_QUICK, id, "trans", swap)),
                 Q(true, state.gameMode, R.drawable.ic_low_latency, initials(R.string.widget_low_latency),
-                    context.getString(R.string.row_game_title), receiverPI(context, WidgetActions.ACTION_GAME_TOGGLE, id, swap = swap))
+                    context.getString(R.string.row_game_title),
+                    receiverPI(context, WidgetActions.ACTION_GAME_TOGGLE, id, swap = swap))
             )
             qs.forEachIndexed { i, q ->
                 val b = QUICK[i]
